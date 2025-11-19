@@ -1,17 +1,4 @@
 import streamlit as st
-import pandas as pd 
-import matplotlib as plt
-
-st.title("Aplikasi visualisasi ")
-st.write("welkom")
-
-data = pd.DataFrame(data= {
-    "Kampanye": ["Kampanye A", "Kampanye B", "Kampanye C"],
-    "Total Donasi (juta)": [50, 70, 200],
-})
-
-st.subheader("Data Kampanye donasi")
-import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -63,25 +50,25 @@ data_peta = pd.DataFrame({
 
 st.map(data_peta)
 
-#Dashboard
+# Dashboard
 st.title("Dashboard Donasi Lingkungan")
 
-data = pd.DataFrame(data={
+data2 = pd.DataFrame({
     "Kampanye": ["Mangrove Balikpapan","Pantai Samboja", "Delta Mahakam"],
     "Donasi": [120,85, 60],
     "Target": [150, 100, 90]
 })
 
-kampanye = st.selectbox("Pilih kampanye:", data["Kampanye"])
-row = data[data["Kampanye"] == kampanye].iloc[0]
+kampanye = st.selectbox("Pilih kampanye:", data2["Kampanye"])
+row = data2[data2["Kampanye"] == kampanye].iloc[0]
 
-st.metric("donasi saat ini", f"{row['Donasi']} juta", delta=row['Donasi'] - row['Target'])
+st.metric("Donasi saat ini", f"{row['Donasi']} juta", delta=row['Donasi'] - row['Target'])
 st.progress(row['Donasi'] / row['Target'])
 
 fig, ax = plt.subplots()
-ax.bar(data["Kampanye"], data["Donasi"], color="green")
+ax.bar(data2["Kampanye"], data2["Donasi"], color="green")
 ax.set_ylabel("donasi(jt)")
 st.pyplot(fig)
 
 st.image("image.png", caption="Kegiatan penanaman")
-st.markdown(""" ### Tujuan nya bagus """)
+st.markdown(""" ### Tujuannya bagus """)
