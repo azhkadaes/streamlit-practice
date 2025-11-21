@@ -129,6 +129,7 @@ def build_pdf_report(df):
 
 def main():
     st.set_page_config(page_title="Warung Nasi Padang Dashboard", layout="wide")
+    st.image("pdg.png", caption="Warung Nasi Padang")
     st.title("Dashboard Warung Nasi Padang")
     st.markdown("""
      Dashboard ini menampilkan analisis menu, penjualan, dan lokasi untuk Warung Nasi Padang. Gunakan filter untuk mengeksplor menu, lihat metrik utama, dan pilih visualisasi.
