@@ -6,9 +6,23 @@ from matplotlib.backends.backend_pdf import PdfPages
 import io
 import pydeck as pdk
 
+# Restaurant dashboard (Warung Nasi Padang)
+# - Membuat dataset contoh menu
+# - Menyediakan beberapa visualisasi (bar, pie, line, area) dan peta
+# - Menghasilkan laporan PDF multi-halaman dari grafik-grafik tersebut
+
 
 @st.cache_data
 def make_menu_dataset():
+
+    # Buat dataset contoh untuk Warung Nasi Padang.
+
+    # Mengembalikan `pandas.DataFrame` dengan kolom:
+    # - item, price, sold_month, rating, lat, lon, revenue
+
+    # Fungsi ini diberi cache melalui `@st.cache_data` agar tidak dihitung
+    # ulang setiap interaksi UI kecuali cache invalidated.
+
     # Warung Nasi Padang - 10 menu items
     items = [
         "Rendang", "Dendeng Balado", "Gulai Ayam", "Sambal Ijo", "Gulai Kikil",
@@ -35,10 +49,25 @@ def make_menu_dataset():
 
 @st.cache_data
 def convert_df_to_csv(_df):
+   
+    # Konversi DataFrame ke CSV bytes (utf-8) untuk diunduh lewat Streamlit.
+
+    # Input: `_df` (pandas.DataFrame)
+    # Output: bytes CSV siap dipakai di `st.download_button`.
+   
     return _df.to_csv(index=False).encode("utf-8")
 
 
 def create_chart(kind, df):
+    
+    # Buat matplotlib Figure untuk tipe chart tertentu berdasarkan `df`.
+
+    # Parameter:
+    # - kind: salah satu dari "Bar - Revenue", "Pie - Share", "Line - Top 3 Trend", atau default (area)
+    # - df: DataFrame yang berisi kolom minimal `item`, `revenue`, dan/atau `sold_month`
+
+    # Mengembalikan (fig, title, explanation) — objek figure, judul, dan teks penjelasan singkat.
+    
     fig, ax = plt.subplots(figsize=(8, 4.5))
     if kind == "Bar - Revenue":
         ax.bar(df["item"], df["revenue"], color="#2b8cbe")
@@ -77,6 +106,17 @@ def create_chart(kind, df):
 
 
 def build_pdf_report(df):
+    
+    # Bangun file PDF (bytes) berisi cover, langkah, dan tiap chart sebagai halaman.
+
+    # Alur:
+    # - Buat `PdfPages` pada buffer memori
+    # - Tambahkan halaman cover (teks)
+    # - Tambahkan halaman instruksi/langkah
+    # - Untuk setiap jenis chart: render chart ke PNG sementara, lalu masukkan ke halaman PDF
+
+    # Kembalian: bytes PDF siap diunduh.
+  
     buf = io.BytesIO()
     with PdfPages(buf) as pdf:
         # Cover
@@ -128,16 +168,26 @@ def build_pdf_report(df):
 
 
 def main():
+    # Main app: susun layout Streamlit, tampilkan metrik, tabel, filter, visualisasi, peta, dan tombol ekspor.
+    
+
+    # Page configuration and header
     st.set_page_config(page_title="Warung Nasi Padang Dashboard", layout="wide")
-    st.image("pdg.png", caption="Warung Nasi Padang")
+    # optional image: ensure file exists in working dir if used
+    try:
+        st.image("pdg.png", caption="Warung Nasi Padang")
+    except Exception:
+        # If image missing, continue silently
+        pass
     st.title("Dashboard Warung Nasi Padang")
     st.markdown("""
      Dashboard ini menampilkan analisis menu, penjualan, dan lokasi untuk Warung Nasi Padang. Gunakan filter untuk mengeksplor menu, lihat metrik utama, dan pilih visualisasi.
     """)
 
+    # Load dataset (cached)
     df = make_menu_dataset()
 
-    # Metrics
+    # --- Metrics: ringkasan cepat
     total_revenue = df["revenue"].sum()
     total_items = df["sold_month"].sum()
     avg_price = df["price"].mean()
@@ -153,13 +203,16 @@ def main():
 
     st.markdown("---")
 
+    # --- Layout: kiri = tabel + filter, spacer kecil, kanan = visualisasi
     left, spacer, right = st.columns((1, 0.1, 2))
     with left:
         st.subheader("Daftar Menu")
+        # Tampilkan tabel yang sudah diformat
         st.dataframe(df.style.format({"price": "Rp {:,.0f}", "revenue": "Rp {:,.0f}"}))
         csv = convert_df_to_csv(df)
         st.download_button("⬇️ Download CSV", data=csv, file_name="menu_padang.csv", mime="text/csv")
 
+        # Filter untuk mempermudah analisis subset
         st.subheader("Filter")
         pmin, pmax = int(df["price"].min()), int(df["price"].max())
         price_range = st.slider("Rentang harga", pmin, pmax, (pmin, pmax))
@@ -171,12 +224,14 @@ def main():
         st.subheader("Visualisasi")
         chart_choice = st.selectbox("Pilih chart", ["Bar - Revenue", "Pie - Share", "Line - Top 3 Trend", "Area - Orders", "Map"])
 
+        # Terapkan filter
         filtered = df[(df["price"] >= price_range[0]) & (df["price"] <= price_range[1]) & (df["sold_month"] >= sold_filter)]
 
         if filtered.empty:
             st.info("Tidak ada data sesuai filter.")
         else:
             if chart_choice == "Map":
+                # Map: gunakan pydeck untuk peta interaktif
                 st.markdown("**Peta lokasi (Balikpapan)**")
                 mid_lat = filtered["lat"].mean()
                 mid_lon = filtered["lon"].mean()
@@ -188,6 +243,7 @@ def main():
                     get_fill_color=[255, 140, 0],
                     pickable=True,
                 )
+                # Tooltip menggunakan placeholder kolom dari DataFrame
                 tooltip = {"html": "<b>{item}</b><br/>Revenue: Rp {revenue}", "style": {"color": "white"}}
                 deck = pdk.Deck(
                     initial_view_state=pdk.ViewState(latitude=mid_lat, longitude=mid_lon, zoom=12, pitch=0),
@@ -197,23 +253,26 @@ def main():
                 st.pydeck_chart(deck)
                 st.caption("Klik titik untuk melihat nama menu dan revenue (tooltip).")
             else:
+                # Non-map charts: render matplotlib figure yang dikembalikan create_chart
                 fig, title, explanation = create_chart(chart_choice, filtered)
                 st.pyplot(fig)
                 st.markdown(f"**{title}**")
                 st.write(explanation)
 
+    # Footer / about
     st.markdown("---")
     st.header("Tentang")
     st.markdown(
-        """
-        Dashboard Menu Warung Nasi Padang
+        
+        # Dashboard Menu Warung Nasi Padang
 
-        Aplikasi ini membantu pemilik warung memahami performa menu: harga, jumlah terjual, revenue, dan lokasi.
+        # Aplikasi ini membantu pemilik warung memahami performa menu: harga, jumlah terjual, revenue, dan lokasi.
 
-        Pilih rentang harga dan minimal terjual, lalu pilih visualisasi di sebelah kanan. Gunakan tombol download untuk CSV atau PDF.
-        """
+        # Pilih rentang harga dan minimal terjual, lalu pilih visualisasi di sebelah kanan. Gunakan tombol download untuk CSV atau PDF.
+        
     )
 
+    # PDF export button
     st.markdown("## Ekspor Laporan PDF")
     if st.button("Generate PDF Report"):
         with st.spinner("Membuat PDF…"):
